@@ -1,28 +1,23 @@
 # dependency-upgrade skill
 
-Plans, executes, and validates major dependency upgrades across any language ecosystem.
+Finds code breaking changes caused by a library version upgrade. Given a library name and target version, identifies what will break and where in the codebase.
 
 ## Structure
 
 ```
 dependency-upgrade/
-├── SKILL.md                  # workflow phases and decision rules (load first)
-├── ecosystems/
-│   ├── jvm.md                # Maven + Gradle
-│   ├── python.md             # pip / poetry / uv
-│   ├── nodejs.md             # npm / yarn
-│   ├── dotnet.md             # NuGet / dotnet CLI
-│   ├── go.md                 # Go modules
-│   ├── rust.md               # Cargo
-│   └── ruby-php.md           # Bundler + Composer
-└── templates/
-    ├── renovate.json         # Renovate config
-    ├── rollback.sh           # upgrade + rollback script
-    └── migration-note.md     # migration doc template
+├── SKILL.md                  # analysis steps and output format (load first)
+└── ecosystems/
+    ├── jvm.md                # Maven + Gradle
+    ├── python.md             # pip / poetry / uv
+    ├── nodejs.md             # npm / yarn
+    ├── dotnet.md             # NuGet / dotnet CLI
+    ├── go.md                 # Go modules
+    ├── rust.md               # Cargo
+    └── ruby-php.md           # Bundler + Composer
 ```
 
 ## Usage
 
-1. Load `SKILL.md` for the workflow.
-2. Load the matching `ecosystems/<stack>.md` for commands specific to the project's language.
-3. Copy files from `templates/` directly into the target repository as needed.
+1. Load `SKILL.md` for the analysis steps and required output format.
+2. Load the matching `ecosystems/<stack>.md` for ecosystem-specific commands (dependency tree, run tests, find affected code).
