@@ -1,18 +1,16 @@
 ---
 name: dependency-upgrade
-description: Manage major dependency version upgrades with compatibility analysis, staged rollout, and comprehensive testing. Use when upgrading framework versions, updating major dependencies, or managing breaking changes in libraries across any language ecosystem.
-compatibility: Intended for coding agents working in any language ecosystem with access to source code, tests, lockfiles/manifests, changelogs, and migration guides.
+description: Find code breaking changes caused by a library version upgrade. Use when a user specifies a library and a target version and wants to know what in the codebase will break and where.
+compatibility: Intended for coding agents working in any language ecosystem with access to source code, tests, lockfiles, and manifests.
 metadata:
   owner: opentext-debricked
   domain: sca
-  version: "1.1"
+  version: "1.2"
 ---
 
-# Dependency Upgrade
+# Breaking Change Finder
 
-You are a dependency upgrade specialist operating across any language ecosystem.
-
-Your job is to plan, execute, and validate major dependency version upgrades while minimizing risk and preserving existing behavior.
+You are a breaking change specialist. Given a **library name**, **current version**, and **target version**, your sole job is to identify what breaking changes the upgrade introduces and locate every affected usage in the repository.
 
 ## Companion files
 
@@ -28,42 +26,21 @@ Load the relevant file for your target ecosystem before starting:
 | Rust / Cargo | [ecosystems/rust.md](ecosystems/rust.md) |
 | Ruby / PHP | [ecosystems/ruby-php.md](ecosystems/ruby-php.md) |
 
-Copy-ready config templates:
-
-| Template | Use for |
-|----------|---------|
-| [templates/renovate.json](templates/renovate.json) | Automated PR-based updates |
-| [templates/rollback.sh](templates/rollback.sh) | Safe upgrade-and-rollback shell script |
-| [templates/migration-note.md](templates/migration-note.md) | Post-upgrade migration note |
-
 ---
 
 ## When to Use This Skill
 
-- Upgrading major framework or runtime versions
-- Updating security-vulnerable dependencies
+- A user asks "what will break if I upgrade X from version A to B?"
+- A dependency version bump has been proposed and the impact needs to be assessed
 - Resolving dependency conflicts or incompatible version ranges
-- Planning incremental upgrade paths across multiple major versions
-- Automating or standardizing dependency update workflows
 
 ## Core Objective
 
-Given a **dependency name**, **current version**, and **target version**, you must:
+Given a **dependency name**, **current version**, and **target version**:
 
-1. Identify actual breaking changes between the versions
-2. Locate all affected usages in the repository
-3. Plan a safe, incremental upgrade path
-4. Execute in stages with validation at each step
-5. Summarize what changed, why, and what follow-up is required
-
-## Non-Negotiable Rules
-
-- Only change code required by the dependency upgrade
-- Do not refactor, reformat, rename, or clean up unrelated code
-- Do not remove tests unless they are truly obsolete because the target version removed the feature
-- Prefer replacing broken usage with target-version-compatible usage rather than deleting behavior
-- Preserve existing behavior unless the upgraded dependency requires a behavior change
-- If the upgrade crosses multiple major versions, apply migrations in version order
+1. Research all breaking changes introduced between the two versions
+2. Locate every affected usage in the repository
+3. Report exactly what needs to change and where — without modifying any code
 
 ---
 
@@ -86,57 +63,41 @@ MAJOR.MINOR.PATCH  →  MAJOR = breaking, MINOR = additive, PATCH = fix
 
 ---
 
-## Phase 1 — Audit and Plan
+## Step 1 — Confirm the Dependency
 
-1. Determine current and target versions (confirm exact package name)
-2. Run the **outdated** and **audit** commands for your ecosystem → see ecosystem file
-3. Inspect the dependency tree to find all transitive consumers → see ecosystem file
-4. If the upgrade crosses multiple major versions, list each intermediate step now
+1. Confirm the exact package name and current version from the manifest/lockfile → see ecosystem file
+2. Inspect the dependency tree to identify all transitive consumers of this library → see ecosystem file
+3. Run the full test suite on the **current** version to establish a passing baseline → see ecosystem file
+4. If the upgrade crosses multiple major versions, list each intermediate step
 
-## Phase 2 — Research Breaking Changes
+After identifying all breaking changes and affected code (Steps 2–3), run the test suite again on the **target** version to confirm which failures are caused by the upgrade.
+
+## Step 2 — Research Breaking Changes
 
 Use these sources in priority order:
 1. Official migration guide for the target version
 2. Official changelog / release notes
 3. Package registry documentation
 4. GitHub releases, pull requests, issues, source diffs
-5. Repository code, tests, lockfiles, manifests, CI configs
 
 Collect for each version step:
 - Removed or renamed APIs / symbols
-- Deprecated APIs that became errors or hard removals
+- Deprecated APIs that became hard removals
 - Changed defaults, config formats, or bootstrap patterns
 - Changed peer or transitive requirements
 - Changed type signatures, return values, or exception behavior
 - Changed annotation / decorator / middleware contracts
 
-**Compatibility matrix** — when upgrading a package with peer dependencies, build a table before touching code:
+**Compatibility matrix** — when the library has peer dependencies, build this table:
 
-| Peer package | current major compat | target major compat |
-|--------------|----------------------|---------------------|
-| `peer-lib-a` | `^3.0`               | `^4.0`              |
-| `peer-lib-b` | `^1.2`               | `^2.0`              |
+| Peer package | current version compat | target version compat |
+|--------------|------------------------|-----------------------|
+| `peer-lib-a` | `^3.0`                 | `^4.0`                |
+| `peer-lib-b` | `^1.2`                 | `^2.0`                |
 
-## Phase 3 — Staged Upgrade Execution
+## Step 3 — Find Affected Code
 
-**Never upgrade everything simultaneously. One dependency at a time.**
-
-**Step 1 — Branch**
-```bash
-git checkout -b upgrade/<dependency>-<from>-to-<to>
-```
-
-**Step 2 — Update the version declaration** → see ecosystem file for exact syntax
-
-**Step 3 — Compile / type-check** (surfaces API breakage before tests run) → see ecosystem file
-
-**Step 4 — Run tests: unit → integration → e2e** (stop and fix at first failure) → see ecosystem file
-
-**Step 5 — Iterate on failures** — only fix upgrade-related breakage; do not weaken assertions or fix pre-existing failures
-
-## Phase 4 — Handling Breaking Changes
-
-### Find affected code
+For each breaking change identified in Step 2, search the repository for every affected usage.
 
 Search for:
 - Import / require / using statements for the changed package
@@ -147,66 +108,23 @@ Search for:
 - CLI commands or scripts referencing the dependency
 - Lockfiles and manifest version constraints
 
-Use workspace search tools (`grep_search`, `semantic_search`) to locate all call sites before making changes.
+Use workspace search tools (`grep_search`, `semantic_search`) to locate all call sites.
 
-### Automated migration tools
-
-Each ecosystem has dedicated codemod / migration tooling → see ecosystem file.
-
-When no tool is available, write a targeted script that applies find-and-replace patterns across source files, then delete the script after use.
-
-## Phase 5 — Testing Strategy
-
-Run in this order, stopping at first failure:
-
-| Level | Goal |
-|-------|------|
-| Compatibility smoke test | Confirm installed versions match expected ranges |
-| Unit tests | Verify isolated behavior unchanged |
-| Integration tests | Verify the upgraded dependency works end-to-end in context |
-| Visual / snapshot regression | For UI library upgrades only |
-| E2E / API smoke tests | Verify the running application still behaves correctly |
-
-Ecosystem-specific test commands → see ecosystem file.
-
-## Phase 6 — Automated Update Configuration
-
-For ongoing automated updates, copy and adapt:
-- [templates/renovate.json](templates/renovate.json) — Renovate (multi-ecosystem, flexible automerge rules)
-
-## Phase 7 — Rollback Plan
-
-Always work on a branch (Step 1 above). If validation fails, restore cleanly:
-
-```bash
-git checkout -          # return to previous branch
-git branch -D upgrade/… # delete failed branch
-```
-
-Then restore the lockfile from git and reinstall. Ecosystem-specific restore commands → see ecosystem file.
-
-For a reusable script that wraps upgrade + test + rollback, copy [templates/rollback.sh](templates/rollback.sh).
-
-### Multi-major version migrations
-
-1. List every intermediate major version (e.g., 1 → 2 → 3 → 4)
-2. Apply one major migration at a time
-3. Validate (compile + test) after each step before proceeding
-4. Commit a snapshot after each successful step
+For multi-major upgrades, repeat Steps 2–3 for each intermediate version in order.
 
 ---
 
-## Required Final Output
+## Required Output
 
-At the end of any upgrade, provide:
+Report for each breaking change:
 
-1. What breaking changes were relevant to this repository
-2. What files were changed and why
-3. What API patterns were replaced (old → new)
-4. What validation was run and what passed or failed
-5. Whether the app, build, and tests pass on the target version
-6. Any manual follow-up still required
+| # | Breaking change | Affected files | What must change |
+|---|-----------------|----------------|-----------------|
+| 1 | `OldClass` removed | `src/Foo.java:12`, `src/Bar.java:34` | Replace with `NewClass` from `com.example.new` |
+| 2 | Config key `old.key` renamed | `application.yml:8` | Rename to `new.key` |
 
-If there are actual breaking changes, also create a migration note by copying [templates/migration-note.md](templates/migration-note.md) to:
-
-`docs/migrations/<dependency>-<from>-to-<to>.md`
+Then provide a summary:
+- Total number of breaking changes found
+- Total number of affected files
+- Peer/transitive dependencies that also need version updates
+- Any breaking changes for which no affected usage was found in this repository (safe to ignore)
