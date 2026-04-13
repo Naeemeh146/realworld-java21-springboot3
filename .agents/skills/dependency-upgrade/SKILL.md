@@ -5,7 +5,7 @@ compatibility: Intended for coding agents working in any language ecosystem with
 metadata:
   owner: opentext-debricked
   domain: sca
-  version: "1.2"
+  version: "1.0"
 ---
 
 # Breaking Change Finder
@@ -41,6 +41,8 @@ Given a **dependency name**, **current version**, and **target version**:
 1. Research all breaking changes introduced between the two versions
 2. Locate every affected usage in the repository
 3. Report exactly what needs to change and where — without modifying any code
+
+**Non-negotiable rule: no test may be removed.** If a test breaks because of the upgrade, identify the replacement API or behavior and report what the test must be updated to assert. Deleting a test is never an acceptable resolution.
 
 ---
 
@@ -118,10 +120,10 @@ For multi-major upgrades, repeat Steps 2–3 for each intermediate version in or
 
 Report for each breaking change:
 
-| # | Breaking change | Affected files | What must change |
-|---|-----------------|----------------|-----------------|
-| 1 | `OldClass` removed | `src/Foo.java:12`, `src/Bar.java:34` | Replace with `NewClass` from `com.example.new` |
-| 2 | Config key `old.key` renamed | `application.yml:8` | Rename to `new.key` |
+| # | Breaking change | Affected files | What must change | Source |
+|---|-----------------|----------------|-----------------|--------|
+| 1 | `OldClass` removed | `src/Foo.java:12`, `src/Bar.java:34` | Replace with `NewClass` from `com.example.new` | https://github.com/example/lib/releases/tag/v2.0.0 |
+| 2 | Config key `old.key` renamed | `application.yml:8` | Rename to `new.key` | https://example.com/docs/migration/v2 |
 
 Then provide a summary:
 - Total number of breaking changes found
