@@ -114,6 +114,10 @@ Use workspace search tools (`grep_search`, `semantic_search`) to locate all call
 
 For multi-major upgrades, repeat Steps 2–3 for each intermediate version in order.
 
+## Step 3a — Identify Unused Imports After API Changes
+
+For each file touched in Step 3, flag any import of a removed or replaced symbol that has no remaining references after migration. Mark it `Remove unused import` in the output table. Never remove automatically.
+
 ---
 
 ## Required Output
@@ -124,9 +128,11 @@ Report for each breaking change:
 |---|-----------------|----------------|-----------------|--------|
 | 1 | `OldClass` removed | `src/Foo.java:12`, `src/Bar.java:34` | Replace with `NewClass` from `com.example.new` | https://github.com/example/lib/releases/tag/v2.0.0 |
 | 2 | Config key `old.key` renamed | `application.yml:8` | Rename to `new.key` | https://example.com/docs/migration/v2 |
+| 3 | `OldClass` import now unused | `src/Foo.java:1` | Remove unused import (offered, not automatic) | — |
 
 Then provide a summary:
 - Total number of breaking changes found
 - Total number of affected files
 - Peer/transitive dependencies that also need version updates
 - Any breaking changes for which no affected usage was found in this repository (safe to ignore)
+- Unused imports identified for removal (count and list of files)
