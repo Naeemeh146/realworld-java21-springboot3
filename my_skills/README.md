@@ -7,7 +7,7 @@ Finds code breaking changes caused by a library version upgrade. Given a library
 ```
 dependency-upgrade/
 ├── SKILL.md                  # analysis steps and output format (load first)
-└── ecosystems/
+└── refrences/
     ├── jvm.md                # Maven + Gradle
     ├── python.md             # pip / poetry / uv
     ├── nodejs.md             # npm / yarn
@@ -20,4 +20,4 @@ dependency-upgrade/
 ## Usage
 
 1. Load `SKILL.md` for the analysis steps and required output format.
-2. Load the matching `ecosystems/<stack>.md` for ecosystem-specific commands (dependency tree, run tests, find affected code).
+2. Load the matching `refrences/<stack>.md` for ecosystem-specific commands (dependency tree, run tests, find affected code).

@@ -17,13 +17,13 @@ Load the relevant file for your target ecosystem before starting:
 
 | Ecosystem | Reference |
 |-----------|-----------|
-| JVM (Maven / Gradle) | [ecosystems/jvm.md](ecosystems/jvm.md) |
-| Python (pip / poetry / uv) | [ecosystems/python.md](ecosystems/python.md) |
-| Node.js / TypeScript (npm / yarn) | [ecosystems/nodejs.md](ecosystems/nodejs.md) |
-| .NET / NuGet | [ecosystems/dotnet.md](ecosystems/dotnet.md) |
-| Go | [ecosystems/go.md](ecosystems/go.md) |
-| Rust / Cargo | [ecosystems/rust.md](ecosystems/rust.md) |
-| Ruby / PHP | [ecosystems/ruby-php.md](ecosystems/ruby-php.md) |
+| JVM (Maven / Gradle) | [refrences/jvm.md](refrences/jvm.md) |
+| Python (pip / poetry / uv) | [refrences/python.md](refrences/python.md) |
+| Node.js / TypeScript (npm / yarn) | [refrences/nodejs.md](refrences/nodejs.md) |
+| .NET / NuGet | [refrences/dotnet.md](refrences/dotnet.md) |
+| Go | [refrences/go.md](refrences/go.md) |
+| Rust / Cargo | [refrences/rust.md](refrences/rust.md) |
+| Ruby / PHP | [refrences/ruby-php.md](refrences/ruby-php.md) |
 
 ---
 
@@ -66,9 +66,9 @@ MAJOR.MINOR.PATCH  →  MAJOR = breaking, MINOR = additive, PATCH = fix
 
 ## Step 1 — Confirm the Dependency
 
-1. Confirm the exact package name and current version from the manifest/lockfile → see ecosystem file
-2. Inspect the dependency tree to identify all transitive consumers of this library → see ecosystem file
-3. Run the full test suite on the **current** version to establish a passing baseline → see ecosystem file
+1. Confirm the exact package name and current version from the manifest/lockfile → see references file
+2. Inspect the dependency tree to identify all transitive consumers of this library → see references file
+3. Run the full test suite on the **current** version to establish a passing baseline → see references file
 4. If the upgrade crosses multiple major versions, list each intermediate step
 
 After identifying all breaking changes and affected code (Steps 2–3), run the test suite again on the **target** version to confirm which failures are caused by the upgrade.
