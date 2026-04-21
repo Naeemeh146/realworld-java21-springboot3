@@ -1,16 +1,23 @@
 ---
 name: dependency-upgrade
-description: Find code breaking changes caused by a library version upgrade. Use when a user specifies a library and a target version and wants to know what in the codebase will break and where.
+description: >
+  Identify and fix code breaking changes caused by a library or dependency version upgrade.
+  Use this skill whenever: a user asks "what will break if I upgrade X to version Y?",
+  a PR bumps a dependency and needs impact assessment, there are compilation errors or test
+  failures after a library update, a user wants to resolve dependency conflicts or migrate to
+  a new major version, or the user mentions terms like "breaking changes", "bump dependency",
+  "upgrade library", "migrate to new version", "incompatible API", or "after upgrading X stopped working".
+  Also trigger when a user shows a build error or stack trace that resembles a changed or removed API.
 compatibility: Intended for coding agents working in any language ecosystem with access to source code, tests, lockfiles, and manifests.
 metadata:
   owner: opentext-debricked
   domain: sca
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Breaking Change Finder
 
-You are a breaking change specialist. Given a **library name**, **current version**, and **target version**, your sole job is to identify what breaking changes the upgrade introduces and locate every affected usage in the repository and modify the code to be compatible with the new version.
+You are a breaking change specialist. Given a **library name**, **current version**, and **target version**, your job is to identify every breaking change the upgrade introduces, locate all affected usages in the repository, and apply the necessary code changes to make the codebase compatible with the new version.
 
 ## Companion files
 Load the relevant file for your target ecosystem before starting:
@@ -31,6 +38,7 @@ Load the relevant file for your target ecosystem before starting:
 
 - A user asks "what will break if I upgrade X from version A to B?"
 - A dependency version bump has been proposed and the impact needs to be assessed
+- Compilation failures or test failures appeared after a version bump
 - Resolving dependency conflicts or incompatible version ranges
 
 ## Core Objective
@@ -39,9 +47,10 @@ Given a **dependency name**, **current version**, and **target version**:
 
 1. Research all breaking changes introduced between the two versions
 2. Locate every affected usage in the repository
-3. Report exactly what needs to change and where — without modifying any code
+3. Apply the necessary code changes to restore compatibility
+4. Verify the fix by running the test suite
 
-**Non-negotiable rule: no test may be removed.** If a test breaks because of the upgrade, identify the replacement API or behavior and report what the test must be updated to assert. Deleting a test is never an acceptable resolution.
+**Tests must never be removed.** When a test breaks because of the upgrade, find the replacement API or behavior and update the test to use it. Removing a test would hide real regressions — every test that existed before the upgrade must still exist (and pass) after it.
 
 ---
 
@@ -71,8 +80,6 @@ MAJOR.MINOR.PATCH  →  MAJOR = breaking, MINOR = additive, PATCH = fix
 3. Run the full test suite on the **current** version to establish a passing baseline → see references file
 4. If the upgrade crosses multiple major versions, list each intermediate step
 
-After identifying all breaking changes and affected code (Steps 2–3), run the test suite again on the **target** version to confirm which failures are caused by the upgrade.
-
 ## Step 2 — Research Breaking Changes
 
 Use these sources in priority order:
@@ -83,7 +90,7 @@ Use these sources in priority order:
 
 Collect for each version step:
 - Removed or renamed APIs / symbols
-- Deprecated APIs that became hard removals
+- Deprecated APIs that became hard removals (check deprecation warnings in the baseline test run output — they often predict the exact failures in the target version)
 - Changed defaults, config formats, or bootstrap patterns
 - Changed peer or transitive requirements
 - Changed type signatures, return values, or exception behavior
@@ -115,13 +122,35 @@ For multi-major upgrades, repeat Steps 2–3 for each intermediate version in or
 
 ## Step 3a — Identify Unused Imports After API Changes
 
-For each file touched in Step 3, flag any import of a removed or replaced symbol that has no remaining references after migration. Mark it `Remove unused import` in the output table. Never remove automatically.
+For each file touched in Step 3, flag any import of a removed or replaced symbol that has no remaining references after migration. Mark it `Remove unused import` in the output table. Never remove automatically — offer the removal and let the user confirm.
+
+---
+
+## Step 4 — Apply Fixes
+
+Bump the dependency version in the manifest/lockfile first, then apply every change from the Step 3 table:
+
+- Replace removed/renamed API call sites with the new equivalents
+- Update configuration keys, annotation contracts, and bootstrap patterns
+- Update tests to assert the new API behavior — remember, tests must be updated, never removed
+- Remove unused imports identified in Step 3a (only after confirming with the user)
+- If the upgrade is multi-major, apply and verify one major version at a time
+
+Document each change with a brief inline comment only when the replacement is non-obvious (e.g., the old and new APIs have different semantics). Don't add comments for mechanical renames.
+
+## Step 5 — Verify
+
+Run the full test suite on the upgraded version → see references file.
+
+- **All tests green**: the migration is complete. Report the final count of changed files.
+- **New failures**: diagnose each one — determine whether it is caused by a missed breaking change (go back to Step 2) or a pre-existing issue unrelated to this upgrade. Fix upgrade-caused failures; report pre-existing ones without touching them.
+- **Tests cannot run** (missing environment, CI-only, etc.): apply the code changes as far as possible, then note which tests could not be verified and why.
 
 ---
 
 ## Required Output
 
-Report for each breaking change:
+### Breaking change table (produced after Step 3, before applying fixes)
 
 | # | Breaking change | Affected files | What must change | Source |
 |---|-----------------|----------------|-----------------|--------|
@@ -129,9 +158,11 @@ Report for each breaking change:
 | 2 | Config key `old.key` renamed | `application.yml:8` | Rename to `new.key` | https://example.com/docs/migration/v2 |
 | 3 | `OldClass` import now unused | `src/Foo.java:1` | Remove unused import (offered, not automatic) | — |
 
-Then provide a summary:
-- Total number of breaking changes found
-- Total number of affected files
-- Peer/transitive dependencies that also need version updates
-- Any breaking changes for which no affected usage was found in this repository (safe to ignore)
-- Unused imports identified for removal (count and list of files)
+### Migration summary (produced after Step 5)
+
+- Total breaking changes found and fixed
+- Total files modified
+- Peer/transitive dependencies that also needed version updates
+- Breaking changes for which no affected usage was found (safe to ignore)
+- Any test failures that are pre-existing and unrelated to this upgrade
+- Any tests that could not be verified (environment gaps)
